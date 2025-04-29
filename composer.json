@@ -1,5 +1,5 @@
 {
-    "name": "hyperf/nsq",
+    "name": "xiaochaodada/nsq",
     "version": "dev-xiaochaodada",
     "description": "A nsq library for Hyperf.",
     "license": "MIT",
