@@ -180,6 +180,8 @@ class MessageBuilder
             'hostname' => $hostname,
             'user_agent' => 'hyperf-nsq/' . $version,
             'feature_negotiation' => true,
+            'heartbeat_interval' => 60000 * 15,
+            'msg_timeout' => 60000 * 15,
         ]);
         $size = Packer::packUInt32(strlen($message));
         return $command . $size . $message;
