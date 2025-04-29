@@ -56,7 +56,7 @@ class Nsq
             if ($deferTime > 0) {
                 $isOk = true;
                 foreach ($message as $value) {
-                    if (! $this->sendDPub($topic, $value, $deferTime, $confirm)) {
+                    if (!$this->sendDPub($topic, $value, $deferTime, $confirm)) {
                         $isOk = false;
                     }
                 }
@@ -75,11 +75,11 @@ class Nsq
 
     public function subscribe(string $topic, string $channel, callable $callback, bool $autoStop = false): void
     {
-        if (! $this->listen && $autoStop) {
+        if (!$this->listen && $autoStop) {
             $this->listen = true;
             Coroutine::create(function () {
                 while (true) {
-                    if (! $this->subscribing || CoordinatorManager::until(Constants::WORKER_EXIT)->yield(5)) {
+                    if (!$this->subscribing || CoordinatorManager::until(Constants::WORKER_EXIT)->yield(5)) {
                         $this->stopSubscribe();
                         break;
                     }
@@ -91,29 +91,32 @@ class Nsq
             $this->sendSub($socket, $topic, $channel);
             while ($this->subscribing && $this->sendRdy($socket)) {
                 $reader = new Subscriber($socket);
-                $reader->recv();
-
+                if ($reader->recv() === false) {
+                    $socket->sendAll($this->builder->buildNop());
+                    continue;
+                }
+                if ($reader->isHeartbeat()) {
+                    $socket->sendAll($this->builder->buildNop());
+                    continue;
+                }
                 if ($reader->isMessage()) {
-                    if ($reader->isHeartbeat()) {
-                        $socket->sendAll($this->builder->buildNop());
-                    } else {
-                        $message = $reader->getMessage();
-                        $result = null;
-                        try {
-                            $result = $callback($message);
-                        } catch (Throwable $throwable) {
-                            $result = Result::DROP;
-                            $this->logger->error('Subscribe failed, ' . (string) $throwable);
-                        }
-
-                        if ($result === Result::REQUEUE) {
-                            $socket->sendAll($this->builder->buildTouch($message->getMessageId()));
-                            $socket->sendAll($this->builder->buildReq($message->getMessageId()));
-                            continue;
-                        }
-
-                        $socket->sendAll($this->builder->buildFin($message->getMessageId()));
+                    $message = $reader->getMessage();
+                    $result = null;
+                    try {
+                        $result = $callback($message);
+                    } catch (Throwable $throwable) {
+                        $result = Result::DROP;
+                        $this->logger->error('Subscribe failed, ' . (string)$throwable);
                     }
+
+                    if ($result === Result::REQUEUE) {
+                        $socket->sendAll($this->builder->buildTouch($message->getMessageId()));
+                        $socket->sendAll($this->builder->buildReq($message->getMessageId()));
+                        continue;
+                    }
+
+                    $socket->sendAll($this->builder->buildFin($message->getMessageId()));
+
                 }
             }
         });
@@ -199,7 +202,7 @@ class Nsq
         }
 
         $reader = new Subscriber($socket);
-        if (! $reader->recv()->isOk()) {
+        if (!$reader->recv()->isOk()) {
             throw new SocketSendException('SUB send failed, ' . $reader->getPayload());
         }
     }
