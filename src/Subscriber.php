@@ -36,7 +36,10 @@ class Subscriber
     public function recv()
     {
         $data = $this->socket->recvAll(8);
-        $this->size = (int) sprintf('%u', unpack('N', substr($data, 0, 4))[1]);
+        if (!$data) {
+            return false;
+        }
+        $this->size = (int)sprintf('%u', unpack('N', substr($data, 0, 4))[1]);
         $this->type = sprintf('%u', unpack('N', substr($data, 4, 4))[1]);
         $length = $this->size - 4;
         $data = '';
@@ -67,12 +70,12 @@ class Subscriber
 
     public function isMessage(): bool
     {
-        return (int) $this->type === self::TYPE_MESSAGE;
+        return (int)$this->type === self::TYPE_MESSAGE;
     }
 
     public function isHeartbeat(): bool
     {
-        return $this->isMatchResponse('_heartbeat_');
+        return '_heartbeat_' === $this->getPayload();
     }
 
     public function isOk(): bool
@@ -82,6 +85,6 @@ class Subscriber
 
     private function isMatchResponse($response): bool
     {
-        return (int) $this->type === self::TYPE_RESPONSE && $response === $this->getPayload();
+        return (int)$this->type === self::TYPE_RESPONSE && $response === $this->getPayload();
     }
 }
