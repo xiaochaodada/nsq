@@ -22,7 +22,7 @@ class Consumer extends AbstractAnnotation
         public string $topic = '',
         public string $channel = '',
         public string $name = '',
-        public int $nums = 1,
+        public ?int $nums = null,
         public string $pool = ''
     ) {
     }
