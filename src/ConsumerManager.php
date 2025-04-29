@@ -51,10 +51,11 @@ class ConsumerManager
             $annotation->channel && $instance->setChannel($annotation->channel);
             $annotation->name && $instance->setName($annotation->name);
             $annotation->pool && $instance->setPool($annotation->pool);
+            !is_null($annotation->nums) && $instance->setNums($annotation->nums);
 
-            $nums = $annotation->nums;
+            $nums = (int)$instance->getNums();
             $process = $this->createProcess($instance);
-            $process->nums = (int) $nums;
+            $process->nums = $nums;
             $process->name = $instance->getName() . '-' . $instance->getTopic();
             ProcessManager::register($process);
         }
